@@ -1,0 +1,83 @@
+<!DOCTYPE html>
+<head>
+  <meta charset="utf-8">
+  <title>로또추첨기</title>
+  <style>
+    .ball {
+      display: inline-block;
+      border: 1px solid black;
+      border-radius: 20px;
+      width: 40px;
+      height: 40px;
+      line-height: 40px;
+      font-size: 20px;
+      text-align: center;
+      margin-right: 20px;
+    }
+  </style>
+</head>
+
+<body>
+<div id="result">추첨 결과는? </div>
+<div id="bonus">보너스: </div>
+<script>
+// 45개의 숫자를 배열에 넣는다. 
+const candidate = Array(45).fill().map((v, i) => i + 1);
+// 45개의 숫자를 무작위로 섞어서 새로운 배열을 만든다.
+
+const shuffle = [];
+while(candidate.length > 0){
+    const index = Math.floor(Math.random() * candidate.length);
+    const spliceArray = candidate.splice(index, 1); // splice 를 사용할 때, 원본 배열 역시 변화가 이루어진다.
+    const value = spliceArray[0]; // splice의 경우 배열값으로 나타난다. 
+    shuffle.push(value);
+}
+// 이거를 피셔 에이츠 셔플이라 한다. 
+
+// 만든 다음 앞의 6자리 및 보너스 1자리를 뽑아서 새로운 배열을 만든다. 
+
+const answerBall = shuffle.slice(0,6).sort((a,b) => a - b); // 배열을 나타낸다. slice 는 원본이 안변함. 
+const bonus = shuffle[6]; // 배열에서 숫자 하나 가져오는것이니깐. 
+
+// 1초에 한번씩 보여줘야 한다. 
+const $result = document.querySelector('#result');
+
+// 색상을 넣어보자. 10 이하이면 레드, 
+function colorize(number, $tag) {
+    if (number < 10) {
+      $tag.style.backgroundColor = 'red';
+      $tag.style.color = 'white';
+    } else if (number < 20) {
+      $tag.style.backgroundColor = 'orange';
+    } else if (number < 30) {
+      $tag.style.backgroundColor = 'yellow';
+    } else if (number < 40) {
+      $tag.style.backgroundColor = 'blue';
+      $tag.style.color = 'white';
+    } else {
+      $tag.style.backgroundColor = 'green';
+      $tag.style.color = 'white';
+    }
+  }
+
+function drawBall(number, $target){
+    const $ball = document.createElement('div');
+    $ball.className = 'ball';
+    colorize(number, $ball);
+    $ball.textContent = number;
+    $target.appendChild($ball);
+}
+
+// setTimeout(function, delay);   -> setTimeout(() => {}, delay)
+for(let i = 0; i < answerBall.length; i++){
+    setTimeout(() => {
+        drawBall(answerBall[i], $result)} , (i + 1) * 1000 )
+};
+
+const $bonus = document.querySelector("#bonus");
+
+setTimeout(() => {
+    drawBall(bonus, $bonus)}, 7000);
+
+
+</script>
