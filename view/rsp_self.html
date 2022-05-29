@@ -1,0 +1,133 @@
+<html>
+<head>
+  <meta charset="utf-8" />
+  <title>가위바위보</title>
+  <style>
+    #computer {
+      width: 142px;
+      height: 200px; 
+    }
+  </style>
+</head>
+
+<body>
+<div id="computer"></div>
+<div>
+  <button id="scissors" class="btn">가위</button>
+  <button id="rock" class="btn">바위</button>
+  <button id="paper" class="btn">보</button>
+</div>
+<div id="score">0</div>
+<div id="result"></div>
+<script>
+
+  // 우선 가위바위 보 부분을 가져오고, 사진을 컴퓨터에 넣어줄것임.
+const $computer = document.querySelector('#computer');
+const $scissors = document.querySelector('#scissors');
+const $rock = document.querySelector('#rock');
+const $paper = document.querySelector('#paper');
+const $score = document.querySelector('#score');
+const $result = document.querySelector('#result');
+  // 이미지는 가위바위보 3가지가 같이 들어있는 이미지.
+const IMG_URL = './rsp.png';
+$computer.style.background = `url(${IMG_URL}) 0`;
+$computer.style.backgroundSize = 'auto 200px';  // 첫번째 값은 이미지 너비, 두번째 값은 이미지 높이
+  //$computer.style.backgroundSize = 'auto 200px';
+
+  // 객체 프로퍼티. 지금 value는 이미지의 x 좌표의 변화값을 나타낸다. 가위는 그대로, 바위는 한칸 옆으로, 보는 두칸 옆으로.
+const rspX = {
+    scissors : '0px',
+    rock : '-220px',
+    paper : '-440px',
+};
+  // 3개의 이미지가 계속 반복되면서 움직이게 끔 한다. (이미지에 따라 컴퓨터의 선택으로 놓을것임)
+let computerChoice = 'scissors';
+
+  // 우선 가위바위보 중 컴퓨터가 선택한(화면에 나올) 모양을 하나 정해준다. 지금은 가위. 이후 조건문 함수 지정하여, 3가지가 반복해서 움직이도록 한다. 
+const changeComputerHand = () => {
+    if(computerChoice === 'scissors'){
+        computerChoice = 'rock';
+    }else if(computerChoice === 'rock'){
+        computerChoice = 'paper';
+    }else if(computerChoice === 'paper'){
+        computerChoice = 'scissors';
+    }
+
+    $computer.style.background =`url(${IMG_URL}) ${rspX[computerChoice]} 0`;
+    $computer.style.backgroundSize = 'auto 200px';
+}
+    // 객체 프로퍼티에 접근을 할 때, 다음에 . 을 찍거나 [] 로 접근을 할 수 있다. 다만 . 을 사용시 구문 오류가 발생할 수 있다. 
+
+  // 함수를 지정해주었으니, 다음 setInterval을 사용하여 0.05초 간격으로 함수를 실행한다. 
+let intervalId = setInterval(changeComputerHand, 50);
+
+  // 점수 테이블을 만들어 준다. 
+  const scoreTable = {
+    rock: 0,
+    scissors: 1,
+    paper: -1,
+  };
+  // clickButton 5번 호출, 인터벌 1번, 2번, 3번, 4번, 5번(얘만 intervalId)
+  //  그 다음에 버튼을 클릭하면 5번만 취소
+let clickable = true;
+let myTotalScore = 0;
+let computerTotalScore = 0;
+
+const clickButton = () => {
+    if(clickable){
+        clearInterval(intervalId);
+        clickable = false;
+
+      // 점수 계산 및 화면 표시   (condition ? exprIfTrue : exprIfFalse) 
+      // 조건부 삼항 연산자. : 세개의 피 연산자를 취할 수 있는 유일한 연산자. 맨 앞 조건문이 들어감. 그 뒤 물음표. 조건이 참이라면 그 조건식이 다음에 나옴. 그 다음 콜론이 들어가고 콜론 다음 거짓일 경우의 실행식이 나오게 됨. 
+      // 밑에 보면 조건식은 event.target.textContent === '바위' (즉, 버튼의 텍스트가 바위라면), 물음표 뒤 'rock' (참 식), 아니라면 : event.target.textContent === '가위' -> 이런식으로 전개됨.
+      // 이를 변수에 저장하려고 한다. 
+
+    const myChoice = event.target.textContent === '가위' ? 'scissors' : event.target.textContent === '바위' ? 'rock' : 'paper';
+    const myScore =  scoreTable[myChoice];
+    const computerScore = scoreTable[computerChoice];
+    const diff = myScore - computerScore;
+
+      // 2, -1은 승리조건이고, -2, 1은 패배조건, 점수표 참고
+      // 이건 팁인데, 조건문에서 연산자 || 을 사용하는 숫자가 많아질 때, 차라리 []을 만들어 일정 조건이 그 안에 포함하는가로 표현하는것도 좋다. 
+      // diff === 2 || diff === -1 ->> [2, -1].includes(diff)
+      let message;
+      if([2,-1].includes(diff)){
+        myTotalScore += 1;
+        message = '나의 승리';
+      }else if([-2,1].includes(diff)){
+        computerTotalScore += 1;
+        message = '나의 패배';
+      }else{
+        message = '무승부';
+      }
+
+      // div에 텍스트를 넣어주자. 
+      $score.textContent = `나의 점수 : ${myTotalScore}, 상대 점수 : ${computerTotalScore}, 상태 : ${message}`;
+      let callBack = setTimeout(() => {
+        clickable = true;
+        intervalId = setInterval(changeComputerHand, 50);
+      }, 1000);
+
+      if(myTotalScore === 3){
+        $result.textContent = `3점을 먼저 얻어 당신의 최종승리입니다.`;
+        clearInterval(intervalId);
+        clearTimeout(callBack);
+        clickable = false;
+      }else if(computerTotalScore === 3){
+          $result.textContent = `상대방이 먼저 3점을 얻어 당신의 패배입니다.`
+          clearInterval(intervalId);
+          clearTimeout(callBack);
+          clickable = false;
+      }
+    }
+};
+
+$scissors.addEventListener('click', clickButton);
+$rock.addEventListener('click', clickButton);
+$paper.addEventListener('click', clickButton);
+ // 이벤트 입력하기
+
+</script>
+</body>
+</html>
