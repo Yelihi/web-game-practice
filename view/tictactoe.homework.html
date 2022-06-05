@@ -82,35 +82,48 @@
             return hasWinner;
         }
 
-        const callBack = (event) => {
-            if(event.target.textContent !== ''){
-                return;
-            }
-            // 빈칸이면
-            event.target.textContent = turn;
-            const Winner = checkWinner(event.target); // return 값이 hasWinner 다 (조건함수의 return 값은 참 거짓으로 해놓으면 좋다.) 따라서 함수 내에서 hasWinner의 참 거짓값이 결정되어서 return 되고, 이를 hasWinner가 역시 받는다.
-            if(Winner){ // 사실 변수명을 꼭 hasWinner로 해줄건 없다. return 값을 다른 변수에 참조 선언 해줄것이며, 따라서 참조된 변수 역시 참 거짓을 판단할 수 있다.
+
+        const checkWinnerAndDraw = (target) => {
+            const Winner = checkWinner(target); 
+            if(Winner){ 
                 $div.textContent = `${turn}님이 승리`;
                 $table.removeEventListener('click', callBack);
                 return;
             }
-            // 무승부
-            const draw = row.flat().every((cell) => cell.textContent); // 1차원 배열로 해준다. 이후 every 사용하면 전부 함수조건에 해당할 때 true 반환.
+            const draw = row.flat().every((cell) => cell.textContent); 
             if(draw){
                 $div.textContent = `무승부`;
                 return;
             }
 
-            // const draw = true
-                // row.forEach((rows) => {
-                //    rows.forEach((cell) => {
-                    //   if(!cell.textContent){
-                   //     draw = false;
-                   // }
-                // })
-               // })
-
             turn = turn === "X" ? "O" : "X";
+
+        }
+
+        let clickable = true;
+        const callBack = (event) => {
+            if(!clickable){
+                return;
+            }
+
+            if(event.target.textContent !== ''){
+                return;
+            }
+            // 빈칸이면
+            event.target.textContent = turn;
+            checkWinnerAndDraw(event.target);
+            if(turn === 'X'){
+                const emptyCell = row.flat().filter((v) => !v.textContent);
+                const randomCell = emptyCell[Math.floor(Math.random() * emptyCell.length)];
+                clickable = false;
+                setTimeout(() => {
+                    randomCell.textContent = 'X';
+                    checkWinnerAndDraw(randomCell);
+                    clickable = true;
+                }, 1000);
+            }
+
+
         };
 
     
