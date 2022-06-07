@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>끝말잇기</title>
+    <style>
+        *{
+            margin: 0;
+            padding: 0;
+        }
+
+        .section{
+            display: none;
+        }
+
+        .section.active{
+            display: block;
+        }
+
+
+        .container{
+            width: 100%;
+            height: 100%;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            margin: 1rem;
+            padding: 1rem;
+        }
+
+        .title{
+            display: block;
+            padding: 1rem;
+            font-size: 5rem;
+        }
+
+        .container > span {
+            padding: .5rem;
+        }
+
+        .container > input {
+            margin: .5rem 0;
+            border: none;
+            border-bottom: 1.5px solid #000;
+        }
+    </style>
+</head>
+<body>
+    <div class="section active co1">
+        <div class="container">
+            <div class="title-container">
+                <h1 class="title">끝말잇기!!</h1>
+            </div>
+            <span>참가자 수를 숫자로 입력하세요.</span>
+            <form id="user">
+                <input type="text" id="number">
+                <button type="submit">입력</button>
+            </form>
+        </div>
+    </div>
+    <div class="section co2">
+        <div class="container">
+            <div>
+                <span id="order">1</span>번째 참가자
+            </div>
+            <div> 제시어 : 
+                <span id="word"></span>
+            </div>
+            <input type="text" id="offer">
+            <button id="button2">입력</button>
+        </div>
+    </div>
+    <script>
+        const $number = document.querySelector('#number');
+        const $user = document.querySelector('#user');
+        const $co1 = document.querySelector('.co1');
+        const $co2 = document.querySelector('.co2');
+        const $input = document.querySelector('#offer');
+        const $button = document.querySelector('#button2');
+        const $word = document.querySelector('#word');
+        const $order = document.querySelector('#order');
+
+        const userNumber = [];
+
+        $user.addEventListener('submit', (event) => {
+            event.preventDefault();
+            const number = Number($number.value);
+            userNumber.push(number);
+            $co1.classList.remove('active');
+            $co2.classList.add('active');
+            console.log(userNumber);
+        })
+
+        let word;
+        let newWord;
+        let order;
+        $button.addEventListener('click', () => {
+            if(newWord.length === 3 && (!word || word[word.length-1] === newWord[0])){
+                word = newWord;
+                $word.textContent = word;
+                $input.value = '';
+                order = Number($order.textContent);
+                order += 1;
+                if(order > userNumber[0]){
+                    order = 1;
+                }
+                $order.textContent = order;
+            }else {
+                alert('잘못 입력하셨습니다.');
+                $input.value = '';
+            }
+        });
+        $input.addEventListener('input', (event) => {
+            newWord = event.target.value;
+            }
+        );  
+    </script>
+</body>
+</html>
