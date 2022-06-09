@@ -12,18 +12,20 @@
   'use strict';
 
   class LikeButton extends React.Component {
-    constructor(props) {
-      super(props);
-      this.state = {liked: false};
+      state = {liked: false};
+
+    onClickButton = () => {
+        this.setState({liked: true}); // 화살표 함수면 된다. 
     }
 
+
     render() {
-      if (this.state.liked) {
-        return 'You liked this.';
+      if (this.state.liked) { // 조건
+        return 'You liked this.'; // 화면에 나오는 부분
       }
 
-      return (
-        <button onClick={() => this.setState({liked: true})}>
+      return ( // 화면을 그리는 부분 / 클릭 시 데이터가 true 로 바뀌고, 그러자 마자 화면이 바뀐다. // 함수를 대신 넣어줄 수 있다
+        <button onClick={this.onClickButton}>  
           Like
         </button>
       );
@@ -31,7 +33,8 @@
   }
 </script>
 <script type="text/babel">
-  ReactDOM.render(<LikeButton/>, document.querySelector('#root'));
+  ReactDOM.render(<LikeButton/>, document.querySelector('#root')); // 우리가 만든 컴포넌트를 root 안에 넣어라 (17버전)
+ // ReactDOM.createRoot(document.querySelector('#root')).render(<button />); // 18버전 React code
 </script>
 </body>
 </html>

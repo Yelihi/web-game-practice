@@ -15,8 +15,9 @@
     // -> 1 부터 9까지 숫자 배열을 만든다.
     const randomNumber = [];
     for(let i = 0; i < baseNumber.length; i++){
-        const index = Math.floor(Math.random() * baseNumber.length);
-        const pickNum = baseNumber[index];
+        const copyBaseNumber = baseNumber.slice();
+        const index = Math.floor(Math.random() * copyBaseNumber.length);
+        const pickNum = copyBaseNumber.splice(index, 1);
         randomNumber.push(pickNum);
     }
     console.log(randomNumber);
