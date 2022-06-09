@@ -1,0 +1,33 @@
+<html>
+<head>
+</head>
+<body>
+<div id="root"></div>
+<script crossorigin src="https://unpkg.com/react@16/umd/react.development.js"></script>
+<script crossorigin src="https://unpkg.com/react-dom@16/umd/react-dom.development.js"></script>
+<script src="https://unpkg.com/babel-standalone@6/babel.min.js"></script>
+<!--<script src="https://unpkg.com/react@16/umd/react.production.min.js" crossorigin></script>-->
+<!--<script src="https://unpkg.com/react-dom@16/umd/react-dom.production.min.js" crossorigin></script>-->
+<script type="text/babel">
+  'use strict';
+
+  function LikeButton(){ // 함수 컴포넌트 (함수형 컴포넌트 아니다.)
+    const [liked, setliked] = React.useState(false);
+    if(liked){
+        return 'You liked this';
+    }
+    
+    return (
+       <button onClick={() => { setliked(true)}}>Like</button>
+    );
+
+  }
+
+
+</script>
+<script type="text/babel">
+  ReactDOM.render(<LikeButton/>, document.querySelector('#root')); // 우리가 만든 컴포넌트를 root 안에 넣어라 (17버전)
+  //ReactDOM.createRoot(document.querySelector('#root')).render(<LikeButton />); // 18버전 React code
+</script>
+</body>
+</html>
