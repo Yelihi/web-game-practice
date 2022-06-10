@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8" />
+<title>짝맞추기</title>
+<style>
+  .card {
+    display: inline-block;
+    margin-right: 20px;
+    margin-bottom: 20px;
+    width: 70px;
+    height: 100px;
+    perspective: 140px; 
+  }
+
+  .card-inner {
+    position: relative;
+    width: 100%;
+    height: 100%;
+    text-align: center;
+    transition: transform 0.8s;
+    transform-style: preserve-3d;
+  }
+
+  .card.flipped .card-inner {
+    transform: rotateY(180deg);
+  }
+
+  .card-front {
+    background: navy;
+  }
+
+  .card-front, .card-back {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    border: 1px solid black;
+    backface-visibility: hidden;
+  }
+
+  .card-back {
+    transform: rotateY(180deg);
+  }
+</style>
+</head>
+<body>
+<div id="wrapper"></div>
+<script>
+    const $wrapper = document.querySelector('#wrapper');
+    // 화면상 보이는 카드를 16개 만든다.
+
+    const Colors = ['red', 'orange', 'yellow', 'green', 'white', 'pink'];
+    let frontColors = Colors.concat(Colors); // concat을 익혀두자.
+    let copyFrontColors = frontColors.slice(); // 원래 배열 복사.
+    console.log(frontColors);
+
+    // 카드를 랜덤하게 섞는다. 피셔 에이츠 셔플
+    let shuffleColors = [];
+
+    function shuffle(){
+        for(let i = 0; i < frontColors.length; i++){ // 여기조건을 변경해주면 굳이 배열 복사를 할 필요는 없다. frontColors.length > 0
+            const index = Math.floor(Math.random() * copyFrontColors.length);
+            const pickColor = copyFrontColors.splice(index, 1);
+            shuffleColors.push(pickColor[0]);
+        }
+    };
+
+    const createCard = (i) => { // 솔직히 순서는 잘 이해는 안간다. 
+        const card = document.createElement('div');
+        card.classList.add('card');
+        const cardInner = document.createElement('div');
+        cardInner.classList.add('card-inner');
+        const cardFront = document.createElement('div');
+        cardFront.classList.add('card-front');
+        const cardBack = document.createElement('div');
+        cardBack.classList.add('card-back');
+        cardBack.style.backgroundColor = shuffleColors[i];
+        cardInner.appendChild(cardFront);
+        cardInner.appendChild(cardBack);
+        card.appendChild(cardInner);
+        return card;
+
+    };
+
+
+    let clicked = [];
+    let completed = [];
+    function onClickCard(){
+            this.classList.toggle('flipped');
+            clicked.push(this);
+            console.log(clicked);
+            if(clicked.length !== 2){
+                return;
+            }
+            const firstBackColor = clicked[0].querySelector('.card-back').style.backgroundColor;
+            const secondBackColor = clicked[1].querySelector('.card-back').style.backgroundColor;
+            if(firstBackColor === secondBackColor){
+                completed.push(clicked[0]);
+                completed.push(clicked[1]);
+                clicked = [];
+                if(completed.length === 12){
+                    setTimeout(() => {
+                        alert('축하합니다.')
+                        resetGame();
+                    }, 1000);
+                    return;
+                }
+
+            }else{
+                setTimeout(() => {
+                    clicked[0].classList.remove('flipped');
+                    clicked[1].classList.remove('flipped');
+                    clicked = [];
+                }, 500);
+            }
+    }
+    console.log(clicked);
+
+    function startGame(){
+        shuffle();
+        for(let i = 0; i < shuffleColors.length; i++){
+            const card = createCard(i);
+            console.log(card);
+            card.addEventListener('click', onClickCard);
+            $wrapper.appendChild(card);
+        };
+
+        document.querySelectorAll('.card').forEach((elm, i) => {
+            setTimeout(() => {
+                elm.classList.add('flipped');
+            }, 1000 + 100*i);
+    
+            setTimeout(() => {
+                elm.classList.remove('flipped');
+            }, 4000 + 100*i);
+        });
+    };
+
+    startGame();
+
+    function resetGame(){
+        $wrapper.innerHTML = '';
+        frontColors = Colors.concat(Colors);
+        copyFrontColors = frontColors.slice();
+        shuffleColors = [];
+        completed = [];
+        startGame();
+    }
+
+
+
+
+    console.log(shuffleColors);
+    // 카드의 색상은 총 8종류이고, 2쌍씩 만든다.
+    // 시작 전 카드를 한 2초 정도 보여준다. 전체 뒤접어서. 
+
+
+    // 각 카드에 이벤트 리스너를 적용시킨다.
+    // 대기
+    // 클릭
+    // 첫번째 카드는 돌린상태로 몇초간 유지시킨다. (두번째 카드를 선택하기 전)
+    // 두번째 카드를 선택할 때 같은 짝이면 돌려진상태로 놓고, 아니면 두 카드를 다시 뒤집는다.
+    // 두 카드를 선택할 때의 이벤트 발생기간동안 클릭 기능을 없엔다. 
+    // 모든 카드가 돌아가면 게임을 종료한다.
+</script>
+</body>
+</html>
