@@ -106,12 +106,10 @@
       }, 1000);
       return;
     }
-    clickable = false;
     setTimeout(() => {
       clicked[0].classList.remove('flipped');
       clicked[1].classList.remove('flipped');
       clicked = [];
-      clickable = true;
     }, 500);
   }
 
@@ -144,6 +142,7 @@
     colorCopy = colors.concat(colors);
     shuffled = [];
     completed = [];
+    clickable=false;
     startGame();
   }
 </script>
