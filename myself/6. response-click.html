@@ -1,0 +1,96 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8" />
+    <title>반응속도</title>
+    <style>
+        #screen {
+            width: 300px;
+            height: 200px;
+            text-align: center;
+            user-select: none;
+        }
+
+        #screen.waiting {
+            background-color: aqua;
+        }
+
+        #screen.ready {
+            background-color: red;
+            color: white;
+        }
+
+        #screen.now {
+            background-color: greenyellow;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="screen" class="waiting">클릭해서 시작하세요</div>
+    <div id="result"></div>
+    <script>
+        const $result = document.querySelector('#result');
+        const $string = document.querySelector('.waiting');
+        const $screen = document.querySelector('#screen');
+        // 화면을 여기서 만들것임. createElement 로
+
+        let startTime;
+        let endTime;
+        let readyToNow;
+        let times = [];
+
+        $screen.addEventListener('click', () => {
+            if($screen.classList.contains('waiting')){
+                $screen.classList.add('ready');
+                $screen.classList.remove('waiting');
+                $string.textContent = '초록색이 되면 클릭하세요.';
+                readyToNow = setTimeout(() => {
+                    startTime = new Date();
+                    $screen.classList.add('now');
+                    $screen.classList.remove('ready');
+                    $string.textContent = '이제 클릭하세요.';
+                }, Math.floor(Math.random() * 1000) + 2000);
+            }else if($screen.classList.contains('ready')){
+                clearTimeout(readyToNow);
+                alert('너무 빨리 클릭하셨어요');
+                $screen.classList.remove('ready');
+                $screen.classList.add('waiting');
+                $string.textContent = '클릭해서 시작하세요.';
+            }else if($screen.classList.contains('now')){
+                endTime = new Date();
+                let duringTime = endTime - startTime;
+                times.push(duringTime);
+                // 평균값 구하기
+                const average = times.reduce((a, c) => a + c) / times.length;
+                $result.textContent = `걸린 시간은 ${duringTime} ms 입니다. 평균은 ${average.toFixed(0)} ms`; // 소수점 고정
+                // 순위 매기기 4위까지
+                const ranking = times.sort((a, c) => a - c).slice(0, 4);
+                ranking.forEach((num, index) => {
+                    $result.append(
+                        document.createElement('br'),
+                        `${index+1}위 : ${num} ms`,
+                    );
+                });
+                $screen.classList.add('waiting');
+                $screen.classList.remove('now');
+                $string.textContent = '클릭해서 시작하세요';
+                startTime = '';
+                endTime = '';
+            }
+        })
+        // 그 다음 클래스를 추가하거나 불러와서 화면을 순차적으로 뛰울것임. 
+        // 클릭 이벤트 생성
+
+
+        // 기본 배경은 화면색상이 하늘색
+        // 화면 상단에 클릭하시오를 넣을 것이고
+        // 하늘색을 클릭하면 화면은 빨간색으로 변하면서, 초록색이 되면 클릭하라는 문구와 함께
+        // 화면을 몇 초 후 (랜덤) 초록색으로 변하게 한다.
+        // 화면이 초록색으로 변할 때 화면에는 클릭하시오를 넣고
+        // 화면을 클릭 시 result 에 걸린 시간을 화면에 넣고, 다시 하늘색으로 넘긴다.
+    </script>
+</body>
+
+</html>

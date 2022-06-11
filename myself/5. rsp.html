@@ -91,7 +91,7 @@
                     interverId = setInterval(() =>{intervalRSP();}, 50);
                 }, 2000)
                 
-                setTimeout(() => {
+                setTimeout(() => { // 바로 인터벌 시작하자마자 클릭할수는 없게 해놓았다. 직관성 때문에.
                     clickable = true;
                 }, 2500)
             }
