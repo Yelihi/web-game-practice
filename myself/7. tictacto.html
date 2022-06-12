@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html>
+
+<head>
+    <meta charset="utf-8" />
+    <title>틱택토</title>
+    <style>
+        table {
+            border-collapse: collapse;
+        }
+
+        td {
+            border: 1px solid black;
+            width: 40px;
+            height: 40px;
+            text-align: center;
+        }
+    </style>
+</head>
+
+<body>
+
+
+   <!-- <table>
+        <tr>
+            <td></td>
+            <td></td>
+            <td></td>
+        </tr>
+        <tr>
+            <td></td>
+            <td></td>
+            <td></td>
+        </tr>
+        <tr>
+            <td></td>
+            <td></td>
+            <td></td>
+        </tr>
+    </table> -->
+    <script>
+        // 화면에 9개의 칸을 만들어야 한다. 이차원 배열 활용
+
+        const { body } = document;
+        const $table = document.createElement('table');
+        const $div = document.createElement('div');
+        const row = [];
+
+        let clickable = true;
+        let turn = 'O';
+
+
+        const checkWinnerAndDraw = (target) => {
+            let rowIndex = target.parentNode.rowIndex;
+            let cellIndex = target.cellIndex;
+
+            console.log(row[rowIndex]);
+            console.log(cellIndex);
+            console.log(row);
+
+            let hasWinner = false;
+
+            if(
+                row[rowIndex][0].textContent === turn &&
+                row[rowIndex][1].textContent === turn &&
+                row[rowIndex][2].textContent === turn 
+            ){  hasWinner = true; }
+
+            if(
+                row[0][cellIndex].textContent === turn &&
+                row[1][cellIndex].textContent === turn &&
+                row[2][cellIndex].textContent === turn 
+            ){  hasWinner = true; }
+
+            if(
+                row[0][2].textContent === turn &&
+                row[1][1].textContent === turn &&
+                row[2][0].textContent === turn 
+            ){  hasWinner = true; }
+
+            if(
+                row[2][0].textContent === turn &&
+                row[1][1].textContent === turn &&
+                row[0][2].textContent === turn 
+            ){  hasWinner = true; }
+
+            const draw = row.flat().every((cell) => cell.textContent); 
+            if(draw){
+                $div.textContent = `무승부`;
+                return;
+            }
+
+            return hasWinner;
+
+        };
+
+        const callback = (event) => {
+            if(event.target.textContent !== ''){
+                return;
+            }
+
+            event.target.textContent = turn;
+
+            // 승자발생시 게임종료 return;
+            const Winner = checkWinnerAndDraw(event.target);
+            if(Winner){
+                $div.textContent = `${turn} 님이 승리하셨습니다.`;
+                $table.removeEventListener('click', callback);
+                return;
+            }
+            // 무승부일시 게임종료 return;
+
+            turn = turn === 'O' ? 'X' : 'O';
+        };
+
+
+        for(let i = 0; i < 3; i++){
+            const $tr = document.createElement('tr');
+            const cells = [];
+            for(let j = 0; j < 3; j++){
+                const $td = document.createElement('td');
+                cells.push($td);
+                $tr.append($td);
+            }
+            row.push(cells);
+            $table.append($tr);    
+        }
+        $table.addEventListener('click', callback);
+        body.append($table);
+        body.append($div);
+        // 화면에 나오는 모습과, 데이터에 나오는 값이 일치 (인덱스로 좌표화 시켜야 한다.)
+    </script>
+
+
+</body>
+
+</html>
