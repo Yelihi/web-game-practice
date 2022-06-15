@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8" />
+<title>지뢰찾기</title>
+<style>
+  table { border-collapse: collapse; }
+  td {
+    border: 1px solid #bbb;
+    text-align: center;
+    line-height: 20px;
+    width: 20px;
+    height: 20px;
+    background: #888;
+  }
+  td.opened { background: white; }
+  td.flag { background: red; }
+  td.question { background: orange; }
+</style>
+</head>
+
+<body>
+<form id="form">
+  <input placeholder="가로 줄" id="row" size="5" />
+  <input placeholder="세로 줄" id="cell" size="5" />
+  <input placeholder="지뢰" id="mine" size="5" />
+  <button>생성</button>
+</form>
+<div id="timer">0초</div>
+<table id="table">
+  <tbody></tbody>
+</table>
+<div id="result"></div>
+<script>
+    // 인풋창에서 기입을 받고 이 과정에서 좌클릭과 우클릭 이벤트를 걸어준다.
+    // onsubmit -> plantMine -> drawTable -> (이벤트) 우 : onRightClick(클릭에 따라 데이터를 변경해준다.) / 좌 : onLeftClick -> openAround -> open(승자결정) -> countMine
+    const $form = document.querySelector('#form');
+    const $timer = document.querySelector('#timer');
+    const $tbody = document.querySelector('#table tbody');
+    const $result = document.querySelector('#result');
+
+    const CODE = {
+        NORMAL: -1,
+        QUESTION: -2,
+        FLAG: -3,
+        QUESTION_MINE: -4,
+        FLAG_MINE: -5,
+        MINE: -6,
+        OPEN: 0, // 0 이상 (count 에 저장될것임.)
+    }
+
+    let row;
+    let cell;
+    let mine;
+    let startTime;
+    let interval;
+    let openCount = 0;
+    let data;
+
+    // 이벤트 생성
+    function onSubmit(event){
+        event.preventDefault();
+        row = parseInt(event.target.row.value); // 이벤트 타겟에서 자식 아이디를 가져올 수 있음.
+        cell = parseInt(event.target.cell.value);
+        mine = parseInt(event.target.mine.value);
+        openCount = 0;
+        clearInterval(interval); // 시작 초 없에기
+        $tbody.innerHTML = "";
+        drawTable();
+        startTime = new Date();
+        interval = setInterval(() => {
+            const time = Math.floor((new Date() - startTime) / 1000);
+            $timer.textContent = `${time} 초`;
+        })
+    }
+
+    $form.addEventListener('submit', onSubmit);
+
+
+    function plantMine(){
+        const candidate = Array(row * cell).fill().map((e, i) => { return i; });
+        const shuffle = [];
+        while (candidate.length > row * cell - mine){
+            const chosen = candidate.splice(Math.floor(Math.random() * candidate.length), 1)[0];
+            shuffle.push(chosen);
+        }
+        const data = [];
+        for(let i = 0; i < row; i++){
+            const cells = [];
+            data.push(cells);
+            for(let j = 0; j < cell; j++){
+                cells.push(CODE.NORMAL);
+            }
+        }
+        for(let k = 0; k < shuffle.length; k++){
+            const ver = Math.floor(shuffle[k] / cell);
+            const hor = shuffle[k] % cell;
+            data[ver][hor] = CODE.MINE;
+        }
+
+        return data;
+    }
+
+    function onRightClick(event){
+        const target = event.target;
+        const rowIndex = target.parentNode.rowIndex;
+        const cellIndex =target.cellIndex;
+        const cellData = data[rowIndex][cellIndex];
+        if(cellData === CODE.NORMAL){
+            cellData = CODE.QUESTION;
+            target.className = 'question';
+            target.textContent = '?';
+        }else if(cellData === CODE.QUESTION){
+            cellData = CODE.FLAG;
+            target.className = 'flag';
+            target.textContent = '!';
+        }else if(cellData === CODE.FLAG){
+            cellData = CODE.NORMAL;
+            target.className = '';
+            target.textContent = '';
+        }else if(cellData === CODE.MINE){
+            cellData = CODE.QUESTION_MINE;
+            target.className = "question";
+            target.textContent = '?';
+        }else if(cellData === CODE.QUESTION_MINE){
+            cellData = CODE.FLAG_MINE;
+            target.className = "flag";
+            target.textContent = "!";
+        }else if(cellData === CODE.FLAG_MINE){
+            cellData = CODE.MINE;
+            target.className = '';
+            target.textContent = '';
+        }
+    }
+
+    // 1 2 3
+    // 4 5 6
+    // 7 8 9
+    function countMine(rowIndex, cellIndex){
+        const mines = [CODE.MINE, CODE.QUESTION_MINE, CODE.FLAG_MINE];
+        let i = 0;
+        mines.includes(data[rowIndex -1]?.[cellIndex -1]) && i++;
+        mines.includes(data[rowIndex -1]?.[cellIndex]) && i++;
+        mines.includes(data[rowIndex -1]?.[cellIndex + 1]) && i++;
+        mines.includes(data[rowIndex][cellIndex -1]) && i++; //만약 target 존재 안하면 얘는 그냥 바로 오류 뜨는것임. 
+        mines.includes(data[rowIndex][cellIndex + 1]) && i++;
+        mines.includes(data[rowIndex +1]?.[cellIndex -1]) && i++;
+        mines.includes(data[rowIndex +1]?.[cellIndex]) && i++;
+        mines.includes(data[rowIndex +1]?.[cellIndex + 1]) && i++;
+        return i;
+    }
+
+    // 이벤트 클릭으로 처음에 타켓을 정함. (첫 td는 마우스 클릭으로 정해짐.)
+    // 이후 타겟은 컴퓨터가 정해야 하는것임. (이게 순서가 처음에는 클릭 -> td.target -> 인덱스 결정) 이라면
+    // 이후는 (인덱스 결정 -> 그 인덱스에 따른 타겟(td)이 결정됨 -> 마인 카운트 셈) 인 과정이 되기 때문에, 이전에 당연히 존재했던 타겟에 대해 조건을 따져하는것임.
+    // 타겟이 존재하는가?
+
+    function open(rowIndex, cellIndex){ // 예시로서 open(-1,-1)이라면, 
+        if(data[rowIndex]?.[cellIndex] >= CODE.OPEN){ return; }; // 이미 열린곳이라면 리턴한다.
+        
+        const target = $tbody.children[rowIndex]?.children[cellIndex]; // 그래서 얘를 걸어준것임. 역으로 td의 존재를 파악하는 것임. 즉, 주어진 인덱스를 통해서 실제 데이터에 그 인덱스에 맞는 td가 존재하는지
+        if(!target){ // data[-1][-1] 은 존재하지 않고, 당연히 tbody[-1][-1] 도 존재하지 않음. 없는 부분에 클릭하고 있는것임.
+            return; // 종료시키는 것임. (카운트 못하게)
+        }
+        
+        const count = countMine(rowIndex, cellIndex); // 그래서 이 함수는 target 조건문 밑에 와야하는 것임. (콘솔로그에서도 드러남.) 여긴 이미 한번 거른것.
+        console.log(data[rowIndex][cellIndex]); // 그래서 오류가 안뜸.
+        target.textContent = count || ''; // 어차피 타겟변수는 필요하다. 
+        target.className = 'opened';
+        data[rowIndex][cellIndex] = count;
+
+        openCount++;
+        if(openCount === row * cell - mine){
+            clearInterval(interval);
+            $tbody.removeEventListener('contextmenu', onRightClick);
+            $tbody.removeEventListener('click', onLeftClick);
+            const endTime = new Date();
+            setTimeout(() => {
+                const time = Math.floor((endTime - startTime) / 1000);
+                alert(`승리하셨습니다. 총 ${time} 초 입니다.`);
+            }, 500)
+        } 
+        return count;
+    }
+
+    function openAround(ri, ci){ // 처음 클릭했을 때의 좌표의 td 임. (예시로 0,0 이라하면)
+        setTimeout(() =>{
+            const count = open(ri, ci); // 오픈함수 열어서 카운트를 구하려고 하는것임. 
+            if(count === 0){ // 주변에 지뢰가 없다.
+                openAround(ri-1, ci-1); // (-1,-1) 로 가게된다. 재귀로서 결국 open(-1,-1)이 발동이 됨.
+                openAround(ri-1, ci);
+                openAround(ri-1, ci+1);
+                openAround(ri, ci-1);
+                openAround(ri, ci+1);
+                openAround(ri+1, ci-1);
+                openAround(ri+1, ci);
+                openAround(ri+1, ci+1);
+            }
+        }, 0);
+    }
+    
+    function onLeftClick(event){ // 중요한것 : 예를 들어서 여기서의 타겟은 td 임. 우리가 직접 클릭하는것이니깐 존재함. 
+        const target = event.target;
+        const rowIndex = target.parentNode.rowIndex;
+        const cellIndex = target.cellIndex;
+        const cellData = data[rowIndex][cellIndex];
+        if(cellData === CODE.NORMAL){
+            openAround(rowIndex, cellIndex); // 클릭한 td 에 대해서 open을 할것임.
+        }else if(cellData === CODE.MINE){
+            target.textContent = '펑';
+            target.className = 'opened';
+            clearInterval(interval);
+            $tbody.removeEventListener('contextmenu', onRightClick);
+            $tbody.removeEventListener('click', onLeftClick);
+        }
+    }
+
+
+    function drawTable(){
+        data = plantMine();
+        console.log(data);
+        data.forEach((row) => {
+            const $tr = document.createElement('tr');
+            row.forEach((cell) => {
+                const $td = document.createElement('td');
+                if(cell === CODE.MINE){
+                    $td.textContent = 'X';
+                }
+                $tr.append($td);
+            })
+            $tbody.append($tr);
+            $tbody.addEventListener('contextmenu', onRightClick);
+            $tbody.addEventListener('click', onLeftClick);
+        });
+    }
+
+</script>
+</body>
+</html>

@@ -1,0 +1,233 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8" />
+<title>지뢰찾기</title>
+<style>
+  table { border-collapse: collapse; }
+  td {
+    border: 1px solid #bbb;
+    text-align: center;
+    line-height: 20px;
+    width: 20px;
+    height: 20px;
+    background: #888;
+  }
+  td.opened { background: white; }
+  td.flag { background: red; }
+  td.question { background: orange; }
+</style>
+</head>
+
+<body>
+<form id="form">
+  <input placeholder="가로 줄" id="row" size="5" />
+  <input placeholder="세로 줄" id="cell" size="5" />
+  <input placeholder="지뢰" id="mine" size="5" />
+  <button>생성</button>
+</form>
+<div id="timer">0초</div>
+<table id="table">
+  <tbody></tbody>
+</table>
+<div id="result"></div>
+<script>
+const $form = document.querySelector('#form');
+const $timer = document.querySelector('#timer');
+const $tbody = document.querySelector('#table tbody');
+const $result = document.querySelector('#result');
+let row; // 줄
+let cell; // 칸
+let mine;
+const CODE = { // 깃발과 물음표 느낌표를 데이터로 이차원 배열시 표현해야 한다. 
+  NORMAL: -1, // 닫힌 칸(지뢰 없음)
+  QUESTION: -2, // 지뢰 없는 곳에 우클릭으로 물음표 달렸을 때 데이터형식
+  FLAG: -3, // 지뢰 없는 곳에 우클릭으로 깃발 달렸을 시 데이터 형식
+  QUESTION_MINE: -4,//지뢰 있는 곳에 우클릭으로 물음표 달렸을 때 (차이 두기 위해서)
+  FLAG_MINE: -5, // 역시나 지뢰 있는 곳에 깃발 달렸을 시 데이터형식
+  MINE: -6, // 실제 지뢰있는 곳
+  OPENED: 0, // 0 이상이면 다모두 열린 칸
+};
+let data; // 항상 데이터를 만들고 화면을 따라서 만드는 습관을 기르자.
+let openCount = 0;
+let startTime; // 게임 시작시 시간제기
+let interval; // 시간초 흐르는 인터벌
+
+
+// 순서 : 제출을 한다 -> onSubmit -> plantMine -> drawTable -> (좌 우 클릭 이벤트 생성) -> 우 : onRightClick / 좌 : onLeftClick(패배 결정) -> openAround -> open(승리 결정) -> countMine
+function onSubmit(event) {
+  event.preventDefault(); // 폼 제출 시 기본이벤트를 막아야 한다.
+  row = parseInt(event.target.row.value); // 줄 수 입력받음
+  cell = parseInt(event.target.cell.value); // 칸수 (세로) 입력받음
+  mine = parseInt(event.target.mine.value); // 지뢰 수 입력받음
+  openCount = 0;
+  clearInterval(interval); // 기존 게임에서 초를 세고 있다면 이거 초기화 시키기.
+  $tbody.innerHTML = ''; // 테이블 표 없에기
+  drawTable(); // 다시 그리기
+  startTime = new Date();
+  interval = setInterval(() => {
+    const time = Math.floor((new Date() - startTime) / 1000);
+    $timer.textContent = `${time}초`;
+  }, 1000);
+}
+$form.addEventListener('submit', onSubmit);
+
+function plantMine() {
+  const candidate = Array(row * cell).fill().map((arr, i) => {
+    return i;
+  }); // 입력받은 줄과 칸을 가지는 빈 1열 배열을 만들고(이차원아님) 인덱스를 요소로 집어넣은 배열을 생성한다.
+  const shuffle = []; // 지뢰가 담길 배열임
+  while (candidate.length > row * cell - mine) { // 배열의 길이가 (전체칸 - 입력받은 지뢰 수) 보다 클경우까지. => 즉 이건 지뢰의 수(작다는 의미는 지뢰수 이상 작아진것임)
+    const chosen = candidate.splice(Math.floor(Math.random() * candidate.length), 1)[0]; //candidate 배열을 직접 건드려서, 무작위인덱스를 하나씩 뽑아(배열로 저장됨) -> 배열 [0]을 변수저장
+    shuffle.push(chosen); // 그 배열을 셔플에 넣어줌으로서, 지뢰의 인덱스가 결정남.
+  }
+  const data = []; // 지뢰의 인덱스가 결정나였으니, 이차원 배열에서 지뢰가 어디에 위치하는지 정해주어야 한다.
+  for (let i = 0; i < row; i++) { // 우선 이차원 배열을 생성하자. 
+    const rowData = []; // 입력받은 행 배열을 만든다.
+    data.push(rowData); // 전체 data 배열에, 하나하나 넣어준다. data = [[],[],[],[], ...]
+    for (let j = 0; j < cell; j++) { // row 배열에 칸을 넣어줄건데, 칸 값을 넣어줄 것임. 바로 닫힌 칸 데이터를
+      rowData.push(CODE.NORMAL); // CODE 객체 속 프로퍼티 NOMMAL의 value 를 가져와서 푸쉬 해준다. 
+    }
+  } // 반복문이 끝나고 data = [[-1,-1,-1,-1,...],[-1,-1,-1,..],[-1,-1,-1,-1,...],[-1,-1,-1,-1,...],....] 의 이차원 배열 생성
+
+  for (let k = 0; k < shuffle.length; k++) { // 이제 이차원 배열에서 아까 뽑은 지뢰 인덱스를 심어주어야 한다. 예를 들어 82번째에 지뢰가 들어간다 하면, 이차원 배열 -1을 -6으로 바꾸어 주면 된다.
+    const ver = Math.floor(shuffle[k] / cell); // 7번째 줄 // 지뢰 인덱스를 칸수로 나누어 주면 몇번째 줄인지 알 수 잇다. 
+    const hor = shuffle[k] % cell; // 1번째 칸 // 칸수는 나머지를 통해 알 수 있다. 
+    data[ver][hor] = CODE.MINE; // 이를 통해 아까 만든 이차원 배열 data 에 줄과 칸 인덱스를 골라 객체 CODE 의 프로퍼티 MINE을 가져와 넣어주면 끝.
+  }
+  return data; // data 를 리턴한다.
+}
+
+function onRightClick(event) { // 우클릭을 하였을 시. (물음표 깃발)
+  event.preventDefault(); // 이걸 해줘야지 그 우클릭시 옵션창이 안뜬다.
+  const target = event.target; // 요건 td 다. (이벤트가 시작된곳)
+  const rowIndex = target.parentNode.rowIndex; // 이벤트가 시작된 곳은 행인덱스 찾기
+  const cellIndex = target.cellIndex; // 열 인덱스 찾기.
+  const cellData = data[rowIndex][cellIndex]; // 화면에서 행과 열 인덱스를 찾았으니, 데이터에서 동일하게 변수에 지정해준다. 이벤트 인덱스
+  // 이제 6가지 데이터의 경우에 따라 우클릭시 내부 데이터를 어떻게 처리할지 결정해야 한다. 
+  if (cellData === CODE.MINE) { // 지뢰면 (-6)
+    data[rowIndex][cellIndex] = CODE.QUESTION_MINE; // 물음표 지뢰로 일단 데이터 변경 (-6 -> -4)
+    target.className = 'question'; //물음표
+    target.textContent = '?'; // 물음표
+  } else if (cellData === CODE.QUESTION_MINE) { // 물음표 지뢰면 (-4)
+    data[rowIndex][cellIndex] = CODE.FLAG_MINE; // 깃발 지뢰로 (-5)
+    target.className = 'flag'; //깃발
+    target.textContent = '!'; // 깃발 
+  } else if (cellData === CODE.FLAG_MINE) { // 깃발 지뢰면 (-5)
+    data[rowIndex][cellIndex] = CODE.MINE; // 지뢰로 (-6) 왜냐면 우클릭 해서 깃발에서 넘어갈 땐 아무것도 안띄운 창이 되고, 원래 지뢰자리 데이터가 놓여야 한다.
+    target.className = ''; // 아무것도 표시 안함.
+    target.textContent = '';
+  } else if (cellData === CODE.NORMAL) { // 닫힌 칸이면 (-1)
+    data[rowIndex][cellIndex] = CODE.QUESTION; // 물음표로 (-2)
+    target.className = 'question';
+    target.textContent = '?';
+  } else if (cellData === CODE.QUESTION) { // 물음표면 (-2)
+    data[rowIndex][cellIndex] = CODE.FLAG; // 깃발으로 (-3)
+    target.className = 'flag';
+    target.textContent = '!';
+  } else if (cellData === CODE.FLAG) { // 깃발이면 (-3)
+    data[rowIndex][cellIndex] = CODE.NORMAL; // 닫힌 칸으로 (-1) 역시나 기존 칸으로 되돌려 준다.
+    target.className = '';
+    target.textContent = '';
+  }
+} // 이렇게 우클릭 과정 마무리 (즉. 화면과 데이터를 변경해준다 생각하면 된다.)
+
+// 1 2 3
+// 4 5 6
+// 7 8 9
+function countMine(rowIndex, cellIndex) { // 마인 수를 세자. 행과 열 인덱스를 받는다. 
+  const mines = [CODE.MINE, CODE.QUESTION_MINE, CODE.FLAG_MINE]; // 배열로 -6, -4, -5 를 가져온다.
+  let i = 0; // 정의
+  mines.includes(data[rowIndex - 1]?.[cellIndex - 1]) && i++; // 즉, 우리가 클릭한 곳(5) 에서 위,왼쪽인 (1)이 (-6,-5,-4) 중 하나라면 뒤 i를 1 증가시킨다. 
+  mines.includes(data[rowIndex - 1]?.[cellIndex]) && i++; //(2) 가 배열요소 가지고 있으면 역시 i 1증가. (아니라면 false 다. 아무것도 안함)
+  mines.includes(data[rowIndex - 1]?.[cellIndex + 1]) && i++; // (3) 마찬가지
+  mines.includes(data[rowIndex][cellIndex - 1]) && i++; // 참고로 rowIndex는 절대로 undefined 가 될 수 없다. (4)
+  mines.includes(data[rowIndex][cellIndex + 1]) && i++; // (6)
+  mines.includes(data[rowIndex + 1]?.[cellIndex - 1]) && i++; //(7)
+  mines.includes(data[rowIndex + 1]?.[cellIndex]) && i++; //(8)
+  mines.includes(data[rowIndex + 1]?.[cellIndex + 1]) && i++; //(9)
+  return i; // 다 더해져서 나오게 된다. 
+}
+
+function open(rowIndex, cellIndex) { // 같은 매개변수 가지고 실행한다.
+  if (data[rowIndex]?.[cellIndex] >= CODE.OPENED) return; 
+  // 중요하다. (a?.b === 만약 a가 undefined 라면 b 를 실행하지 않게다라는 의미) 예를 들어 5를 클릭하여 8도 비웠을 때, 8 역시 open 함수 작동. 
+  // 그러면 8 역시 자동으로 옆에 5를 열게 되고 그러면 다시 5가 8을 열고... 무한 루프. 이를 방지하기 위한 코드한줄.
+  const target = $tbody.children[rowIndex]?.children[cellIndex]; // td이다. 
+  console.log(target);
+  if (!target) { // 타겟이 존재해야지만 열어준다.
+    return;
+  }
+  const count = countMine(rowIndex, cellIndex); // 마인 수를 세어주자. -> i 를 리턴한다. 이를 count 에 넣어주자.
+  target.textContent = count || ''; // count 가 0 이 아니라면 count 를 텍스트로 넣어주고, 0이라면 '' 을 넣는다.
+  target.className = 'opened'; // 클래스 적용 (흰바탕)
+  data[rowIndex][cellIndex] = count; // -1을 바꾸어 줌으로서, CODE.OPENED 이나 0보다 커지게 된 값을 가지니, 위쪽 조건문에서 걸러지게된다. (다음에 클릭할 시)
+  openCount++; // 한번 오픈할때마다 한개씩 올라간다. 
+  console.log(openCount);
+  if (openCount === row * cell - mine) { // 오픈한 칸이 마인 제외 전체칸이라면 게임 종료
+    const time = (new Date() - startTime) / 1000; // 초단위 환산
+    clearInterval(interval); // 초 세는 인터벌 삭제
+    $tbody.removeEventListener('contextmenu', onRightClick); // 이벤트들 다 지우기
+    $tbody.removeEventListener('click', onLeftClick); // 이벤트들 다 지우기
+    setTimeout(() => { // 조금 있다가 다 클릭되고 알림
+      alert(`승리했습니다! ${time}초가 걸렸습니다.`);
+    }, 500);
+  }
+  return count; // 게임종료가 아니라면 카운트 리턴 (이걸 openAround가 받자.)
+}
+
+function openAround(rI, cI) { // 2가지의 매개변수 행, 열을 받아 실행하는 재귀함수 => 목적은 한 칸을 오픈할 시 주위 8칸에 지뢰가 없을 시 다 열어주는 역할.이를 연쇄작용 한다.
+  setTimeout(() => { // 재귀함수 호츨 스택 맥스치를 넘기지 않기 위해 백그라운드로 넘겨준다.
+    const count = open(rI, cI); // 오픈 함수 실행. count 를 가져온다.
+    if (count === 0) { // 카운트가 0 이라면, 주위를 다 열어보는 재귀함수 발동.
+      openAround(rI - 1, cI - 1); // (1)
+      openAround(rI - 1, cI); // (2)
+      openAround(rI - 1, cI + 1); //(3)
+      openAround(rI, cI - 1); //(4)
+      openAround(rI, cI + 1); //(5)
+      openAround(rI + 1, cI - 1); //(6)
+      openAround(rI + 1, cI); //(7)
+      openAround(rI + 1, cI + 1); //(8)
+    }
+  }, 0);
+} // 더이상 카운트가 0이 아니라면 반환되니깐, 그때 멈춘다. 
+
+function onLeftClick(event) { // 좌클릭을 하면 칸이 열린다.
+  const target = event.target; // td 태그겠죠?
+  const rowIndex = target.parentNode.rowIndex; // 행 인덱스
+  const cellIndex = target.cellIndex; // 열 인덱스
+  const cellData = data[rowIndex][cellIndex]; // 클릭한 행 열 인덱스를 참조한 실제 데이터
+  // 데이터가 -1 이냐 -6에 따라 승부가 갈립니다.
+  if (cellData === CODE.NORMAL) { // 닫힌 칸이면 (-1)이면
+    openAround(rowIndex, cellIndex); // 함수 오픈 실행 -- 매개변수로 행, 열 인덱스를 받는다. ==> 0이 없을 떄까지 자동으로 오픈한다. 
+  } else if (cellData === CODE.MINE) { // 지뢰 칸이면
+    target.textContent = '펑';
+    target.className = 'opened';
+    clearInterval(interval); // 초세는 인터벌 확실하게 삭제
+    $tbody.removeEventListener('contextmenu', onRightClick); // 이벤트 삭제
+    $tbody.removeEventListener('click', onLeftClick); // 이벤트 삭제
+  } // 나머지는 무시
+  // 아무 동작도 안 함
+}
+
+
+// 이로서 좌 우 클릭 이벤트가 생성된다.
+function drawTable() {
+  data = plantMine(); // 지뢰를 심자. => 이차원 배열 data를 가져왔다. (data 리턴)
+  data.forEach((row) => { // 이제 화면에 그려줘야 하니, 이차원 배열을 테이블로 만들자. 우선 행마다 tr 을 생성한다.
+    const $tr = document.createElement('tr'); // tr을 생성.
+    row.forEach((cell) => { // 각 tr마다 td들을 넣어줘야 하니 역시 반복
+      const $td = document.createElement('td'); // td 를 만들어준다.
+      if (cell === CODE.MINE) { // 만약 칸의 값이 -6 이라면 개발자 모드에서는 'X' 를 그려준다.
+        // $td.textContent = 'X'; // 개발 편의를 위해
+      }
+      $tr.append($td); // tr 에 td 넣어준다.
+    });
+    $tbody.append($tr); // tbody 에 tr 넣어준다. 일단 이로서 화면의 테이블은 완성(데이터는 이미 만들어줬다.)
+    $tbody.addEventListener('contextmenu', onRightClick); // 각 td 마다 이벤트를 넣어야 하는데, 버블링 이용하여서 바디에다가 한번 이벤트 넣어준다. 우클릭 이벤트다.
+    $tbody.addEventListener('click', onLeftClick); // 좌클릭 이벤트도 넣어준다.
+  });
+}
+</script>
+</body>
+</html>
