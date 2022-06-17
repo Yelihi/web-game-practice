@@ -96,6 +96,7 @@
             if (cellData) { // newData = [2, 2, 4]
               const currentRow = newData[i]
               const prevData = currentRow[currentRow.length - 1];
+              console.log(prevData);
               if (prevData === cellData) { // 이전 값과 지금 값이 같으면
                 const score = parseInt($score.textContent);
                 $score.textContent = score + currentRow[currentRow.length - 1] * 2;
@@ -190,6 +191,7 @@
         break;
       }
     }
+    console.log(data);
     if (data.flat().includes(2048)) { // 승리
       draw();
       setTimeout(() => {
