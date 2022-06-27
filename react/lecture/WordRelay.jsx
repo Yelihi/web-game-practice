@@ -34,11 +34,13 @@ class WordRelay extends React.Component {
     this.setState({ value : e.target.value });
   }
 
+  input;
+
   render() {
     return (
       <>
         <h1>{this.state.word}</h1>
-        <form onSubmit={this.onSubmit}>
+        <form onSubmit={this.onSubmit}> 
           <input ref={this.onRefInput} value={this.state.value} onChange={this.onChange} />
           <button>클릭</button>
         </form>
